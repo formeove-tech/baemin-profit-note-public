@@ -128,7 +128,32 @@ fs.writeFileSync(path.join(app, "읽어주세요.txt"), readme, "utf8");
 
 // 5) 마지막 확인 — 내 자료가 한 조각이라도 들어갔으면 만들지 않는다
 fs.rmSync(path.join(app, "data"), { recursive: true, force: true });
+// 빌드가 남기는 추적 기록(*.nft.json)에는 내 컴퓨터의 수집 파일 이름(가게 번호가 든 것)이 들어갈 수 있다. 실행에는 필요 없으니 지운다.
+(function dropTraces(dir) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) dropTraces(p);
+    else if (e.name.endsWith(".nft.json")) fs.rmSync(p, { force: true });
+  }
+})(app);
 const leaked = [];
+// 내 컴퓨터에만 있는 금지어 목록(data/forbidden-names.txt, git 제외)이 있으면 꾸러미 안 글자 파일에서 찾아 본다
+try {
+  const list = fs.readFileSync(path.join(ROOT, "data", "forbidden-names.txt"), "utf8").split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+  const TEXT = /\.(js|mjs|cjs|json|html|css|txt|bat|md|map)$/i;
+  (function grep(dir) {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) grep(p);
+      else if (TEXT.test(e.name)) {
+        const t = fs.readFileSync(p, "utf8");
+        for (const w of list) if (t.includes(w)) leaked.push(`${path.relative(app, p)} (금지어 포함)`);
+      }
+    }
+  })(app);
+} catch {
+  /* 금지어 목록이 없으면 이 검사는 건너뛴다 */
+}
 const DATA_FILE = /^(store-data\.json|settings\.json|orders-.*\.json|settlements-.*\.json|ads-.*\.json)$/;
 (function scan(dir) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
