@@ -17,6 +17,7 @@ import type { BreakevenResult } from "@/lib/engine/breakeven";
 import { simulatePrice } from "@/lib/engine/simulate";
 import { aggregate as aggregateFn, type aggregate, type CostSettings, dailySeries, type MenuTotal, type Store, verifyStore, weekdayStats } from "@/lib/dataset";
 import type { StoreDataFile } from "@/lib/realStore";
+import { depositBasis } from "@/lib/insights";
 import { Help } from "./Help";
 
 type Coverage = ReturnType<typeof aggregate>["coverage"];
@@ -1486,6 +1487,8 @@ export function SettlementPanel({
   range: DateRange;
 }) {
   const [open, setOpen] = useState(false);
+  // 같은 정산(giveId)이 겹쳐 들어오면 뒤의 것 하나만 쓰고, 입금일이 최근인 순서로 보여 준다
+  settlements = [...new Map(settlements.map((s) => [s.giveId, s])).values()].sort((a, b) => (a.depositDueDate < b.depositDueDate ? 1 : a.depositDueDate > b.depositDueDate ? -1 : 0));
   // 입금일 기준으로 선택 기간과 겹치는 정산 건
   const inRangeList = settlements.filter((s) => s.depositDueDate >= range.start && s.depositDueDate <= range.end);
   const list = inRangeList.length ? inRangeList : settlements;
@@ -1496,10 +1499,46 @@ export function SettlementPanel({
   const pending = list.filter((s) => s.status !== "입금완료");
   const pendingSum = Q.sum(pending.map((s) => s.depositAmount));
   const shown = open ? list : list.slice(0, 6);
+  // 입금 내역 기준 최근 30일 — 통장에 찍힌 돈과 바로 맞춰 볼 수 있는 합계
+  const basis = depositBasis(settlements, koreaToday());
+  const md = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 
   return (
     <section className="card p-4">
       <h2 className="section">정산 대조</h2>
+      {basis.count > 0 && (
+        <div className="mt-3 rounded-lg p-3" style={{ background: "var(--soft)" }}>
+          <div className="text-sm font-semibold">
+            입금 내역 기준 최근 30일 ({md(basis.start)}~{md(basis.end)}){" "}
+            <Help>통장에 들어온(들어올) 날짜가 최근 30일인 정산만 더한 값이에요. 통장 내역과 바로 맞춰 볼 수 있어요. 배민 정산이 아직 안 끝난 최근 주문은 들어 있지 않아요.</Help>
+          </div>
+          <dl className="mt-2 grid grid-cols-2 gap-2 text-sm">
+            <dt className="muted">입금 {basis.count}건 합계</dt>
+            <dd className="text-right text-lg font-extrabold">{won(basis.deposit)}</dd>
+            <dt className="muted">하루 평균</dt>
+            <dd className="text-right font-semibold">{won(basis.perDay)}</dd>
+            <dt className="muted">그중 광고비로 빠진 돈</dt>
+            <dd className="text-right font-semibold">{won(basis.ads)}</dd>
+            {basis.pendingCount > 0 && (
+              <>
+                <dt className="loss font-semibold">아직 입금 전</dt>
+                <dd className="loss text-right font-semibold">
+                  {basis.pendingCount}건 · {won(basis.pendingSum)}
+                </dd>
+              </>
+            )}
+            {basis.upcomingCount > 0 && (
+              <>
+                <dt className="muted">앞으로 입금 예정</dt>
+                <dd className="text-right font-semibold">
+                  {basis.upcomingCount}건 · {won(basis.upcomingSum)}
+                </dd>
+              </>
+            )}
+          </dl>
+        </div>
+      )}
+      <p className="mt-3 text-sm font-semibold">선택한 기간 기준</p>
       <p className="mt-1 text-xs muted">
         {inRangeList.length ? "선택 기간에 입금된(입금 예정인) 정산이에요." : "선택 기간에 입금 건이 없어 수집한 전체를 보여 줘요."} 주문 손익은
         주문일 기준, 입금은 정산일 기준이라 기간이 서로 달라요.

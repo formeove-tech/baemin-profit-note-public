@@ -139,7 +139,9 @@ const ALREADY_IN_ORDERS = { INSTANT_DISCOUNT: "즉시할인", MFO: "만원의행
 const autoDirectCosts = [];
 const marketingByMonth = {};
 const adsFiles = fs.existsSync(collectDir) ? fs.readdirSync(collectDir).filter((f) => f.startsWith("ads-")) : [];
-for (const f of adsFiles.sort()) {
+// 같은 달이 여러 파일에 들어 있으면(예: 9월 중간값과 최종값) 가장 나중에 받은 파일 하나만 쓴다
+adsFiles.sort((a, b) => fs.statSync(path.join(collectDir, a)).mtimeMs - fs.statSync(path.join(collectDir, b)).mtimeMs);
+for (const f of adsFiles) {
   const ads = JSON.parse(fs.readFileSync(path.join(collectDir, f), "utf8"));
   for (const [month, m] of Object.entries(ads.months ?? {})) {
     marketingByMonth[month] = {
@@ -159,6 +161,13 @@ for (const f of adsFiles.sort()) {
   }
 }
 
+{
+  const byId = new Map();
+  for (const c of autoDirectCosts) byId.set(c.id, c);
+  autoDirectCosts.length = 0;
+  autoDirectCosts.push(...byId.values());
+}
+
 // 자료가 실제로 있는 날만 이어 붙여 '확인된 기간'을 만든다 (빈 날을 0원으로 채우지 않기 위해)
 const collected = [];
 for (const r of rows) {
@@ -175,9 +184,18 @@ for (const r of rows) {
 const settlements = [];
 const adByDate = new Map();
 const adjustments = [];
+// 정산명세서 파일은 기간이 겹치게 여러 번 쌓인다. 같은 정산(giveId)이 두 번 들어오면 광고비·입금액이 두 배가 되므로,
+// 파일 이름(수집 시각) 순서대로 읽어 같은 정산은 가장 나중 것 하나만 쓴다 (입금 상태도 최신 값이 된다).
+const settleByGive = new Map();
 for (const f of (fs.existsSync(collectDir) ? fs.readdirSync(collectDir) : []).filter((f) => f.startsWith("settlements-")).sort()) {
   const doc = JSON.parse(fs.readFileSync(path.join(collectDir, f), "utf8"));
-  for (const { summary, detail } of doc.details ?? []) {
+  for (const item of doc.details ?? []) {
+    const s = item.summary ?? {};
+    settleByGive.set(s.giveId ?? `${s.depositDueDate}-${s.giveAmount}`, item);
+  }
+}
+{
+  for (const { summary, detail } of settleByGive.values()) {
     const cpc = detail?.cpcDetails;
     const daily = cpc?.dailyDetails ?? [];
     const gross = Math.abs(cpc?.total ?? 0); // 부가세 포함 광고비

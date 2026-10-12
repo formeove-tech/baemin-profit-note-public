@@ -62,3 +62,37 @@ export function quickCalc(input: { sales: number; orders: number; takenByBaemin:
     leftBeforeCosts: Q.of(Math.round(sales) - Math.round(takenByBaemin)),
   };
 }
+
+export interface DepositInput {
+  depositDueDate: string;
+  status: string;
+  depositAmount: number;
+  adCost: number;
+  adjustment: number;
+}
+
+/**
+ * 입금 내역 기준 최근 N일(기본 30일): 입금일이 [오늘-(N-1)일, 오늘]인 정산을 더한다.
+ * 통장에 찍힌 돈과 바로 맞춰 볼 수 있다. 오늘 이후 입금 예정은 따로 센다. 정산 전 주문은 들어 있지 않다.
+ */
+export function depositBasis(list: DepositInput[], today: string, days = 30) {
+  const start = addDays(today, -(days - 1));
+  const inWin = list.filter((s) => s.depositDueDate >= start && s.depositDueDate <= today);
+  const upcoming = list.filter((s) => s.depositDueDate > today);
+  const sum = (xs: DepositInput[], f: (s: DepositInput) => number) => Q.sum(xs.map((s) => Q.of(f(s))));
+  const pending = inWin.filter((s) => s.status !== "입금완료");
+  return {
+    start,
+    end: today,
+    days,
+    count: inWin.length,
+    deposit: sum(inWin, (s) => s.depositAmount),
+    perDay: sum(inWin, (s) => s.depositAmount).div(days),
+    ads: sum(inWin, (s) => s.adCost),
+    adjustment: sum(inWin, (s) => s.adjustment),
+    pendingCount: pending.length,
+    pendingSum: sum(pending, (s) => s.depositAmount),
+    upcomingCount: upcoming.length,
+    upcomingSum: sum(upcoming, (s) => s.depositAmount),
+  };
+}

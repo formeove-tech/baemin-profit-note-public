@@ -16,7 +16,7 @@ import { breakeven } from "@/lib/engine/breakeven";
 import { simulatePrice } from "@/lib/engine/simulate";
 import { aggregate, type CostSettings, menuTotals, type Store, verifyStore, weekdayStats } from "@/lib/dataset";
 import { demoBusinesses } from "@/lib/demo";
-import { quickCalc, takeShare, weeklyCompare } from "@/lib/insights";
+import { depositBasis, quickCalc, takeShare, weeklyCompare } from "@/lib/insights";
 import { addDays as addDaysFn } from "@/lib/engine/period";
 import { readProgress } from "@/lib/collectProgress";
 
@@ -495,5 +495,39 @@ describe("v9: 배민 몫 한 줄 · 주간 비교 · 빠른 계산", () => {
     expect(w!.diff.cmp(0)).toBeGreaterThan(0);
     const thin: Store = { id: "s", name: "s", collected: [], rows: [...days("2026-09-01", 7, 100000), ...days("2026-09-08", 3, 150000)] };
     expect(weeklyCompare(thin, settings, "direct")).toBeNull();
+  });
+});
+
+describe("입금 내역 기준 최근 30일", () => {
+  const s = (depositDueDate: string, status: string, depositAmount: number, adCost = 0, adjustment = 0) => ({ depositDueDate, status, depositAmount, adCost, adjustment });
+  it("입금일이 오늘부터 30일 안인 정산만 더하고, 오늘 이후는 입금 예정으로 따로 센다", () => {
+    const list = [
+      s("2026-09-13", "입금완료", 999), // 30일 밖 (9/14부터)
+      s("2026-09-14", "입금완료", 100000, 1000, 500),
+      s("2026-10-10", "입금완료", 200000, 2000),
+      s("2026-10-12", "입금요청", 300000, 3000),
+      s("2026-10-13", "입금요청", 400000), // 오늘
+      s("2026-10-14", "입금요청", 500000), // 입금 예정
+    ];
+    const d = depositBasis(list, "2026-10-13");
+    expect(d.start).toBe("2026-09-14");
+    expect(d.count).toBe(4);
+    expect(d.deposit.toNumber()).toBe(1_000_000);
+    expect(d.ads.toNumber()).toBe(6000);
+    expect(d.adjustment.toNumber()).toBe(500);
+    expect(d.pendingCount).toBe(2);
+    expect(d.pendingSum.toNumber()).toBe(700_000);
+    expect(d.upcomingCount).toBe(1);
+    expect(d.upcomingSum.toNumber()).toBe(500_000);
+    expect(d.perDay.toNumber()).toBeCloseTo(1_000_000 / 30, 5);
+  });
+  it("예시 가게 C: 어느 날짜에도 입금 건이 있고 입금 전이 보인다", () => {
+    for (let i = 0; i < 10; i++) {
+      const today = addDaysFn("2026-10-05", i);
+      const c = demoBusinesses(today)[2];
+      const d = depositBasis(c.settlements!, today);
+      expect(d.count).toBeGreaterThan(15);
+      expect(d.pendingCount).toBeGreaterThan(0);
+    }
   });
 });
