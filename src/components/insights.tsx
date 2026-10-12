@@ -10,7 +10,7 @@ import { Help } from "./Help";
 
 const md = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 
-/** v9 ②: 음식값 100원 중 배민이 가져가는 돈 — 큰 숫자 한 줄 */
+/** v9 ②: 평균 주문(객단가) 1건당 배민에 내는 수수료·비용 — 큰 숫자 한 줄 */
 export function TakeShareLine({ result }: { result: ChannelResult }) {
   const t = takeShare(result);
   if (!t) return null;
@@ -18,19 +18,21 @@ export function TakeShareLine({ result }: { result: ChannelResult }) {
   return (
     <section className="card p-5">
       <div className="text-sm font-semibold muted">
-        음식값 100원을 팔면 배민에 내는 수수료·비용{" "}
-        <Help>중개이용료·결제수수료·배달비·그 부가세 등 배민 정산에서 빠지는 비용의 합이에요. 재료비·포장비·인건비는 들어 있지 않아요. 기준은 위 숫자들과 같은 &lsquo;할인 뺀 매출&rsquo;이에요.</Help>
-      </div>
-      <div className="mt-1 text-4xl font-extrabold tracking-tight md:text-5xl">{n(t.per100)}원</div>
-      <p className="mt-1 text-base">
-        {t.perOrder && (
+        {t.avgTicket ? (
           <>
-            주문 1건마다 평균 <strong>{won(t.perOrder)}</strong>이 나가요.{" "}
+            평균 주문 {won(t.avgTicket)} 중, 1건당 배민에 내는 수수료·비용{" "}
           </>
+        ) : (
+          <>배민에 내는 수수료·비용 </>
         )}
-        {t.withAd && (
+        <Help>중개이용료·결제수수료·배달비·그 부가세 등 배민 정산에서 빠지는 비용의 합이에요. 재료비·포장비·인건비는 들어 있지 않아요. 평균 주문은 할인을 뺀 매출을 주문 수로 나눈 값이에요(위 숫자들과 같은 기준).</Help>
+      </div>
+      <div className="mt-1 text-4xl font-extrabold tracking-tight md:text-5xl">{t.perOrder ? won(t.perOrder) : `${n(t.per100)}%`}</div>
+      <p className="mt-1 text-base">
+        평균 주문의 <strong>{n(t.per100)}%</strong>예요.{" "}
+        {t.perOrderWithAd && (
           <span className="muted">
-            광고비·구독료까지 넣으면 100원 중 <strong>{n(t.withAd)}원</strong>
+            광고비·구독료까지 넣으면 1건당 <strong>{won(t.perOrderWithAd)}</strong> ({n(t.withAd ?? t.per100)}%)
           </span>
         )}
       </p>
@@ -109,11 +111,8 @@ export function QuickCalc() {
       {bad && <p className="mt-2 text-sm loss">숫자를 다시 확인해 주세요. 낸 금액이 매출의 두 배를 넘거나 0 이하 숫자가 있어요.</p>}
       {r && (
         <div className="mt-3 grid grid-cols-1 gap-2 text-base md:grid-cols-2">
-          <div>
-            100원 팔면 배민에 <strong>{pct(r.per100.div(100), 1).replace("%", "")}원</strong>을 내요
-          </div>
-          <div>
-            주문 1건 평균 <strong>{won(r.avgOrder)}</strong>, 그중 <strong>{won(r.takenPerOrder)}</strong>이 나가요
+          <div className="md:col-span-2">
+            평균 주문 <strong>{won(r.avgOrder)}</strong> 중, 1건당 배민에 내는 수수료·비용은 <strong>{won(r.takenPerOrder)}</strong> (<strong>{pct(r.per100.div(100), 1)}</strong>)
           </div>
           <div className="md:col-span-2">
             재료비·포장비·인건비를 빼기 전 남는 돈 <strong>{won(r.leftBeforeCosts)}</strong> ({count(Number(v.orders.replace(/\D/g, "")))} 기준)

@@ -4,14 +4,24 @@ import { addDays } from "./engine/period";
 import { type ChannelResult, computeChannel, headline, type Scope } from "./engine/profit";
 import { aggregate, type CostSettings, type Store } from "./dataset";
 
-/** "음식값 100원 중 배민이 가져가는 돈" — 수수료·결제수수료·배달비 등 공제 합계 ÷ 할인 뺀 매출 */
-export function takeShare(r: ChannelResult): { per100: Q; perOrder: Q | null; withAd: Q | null } | null {
+/** 평균 주문(객단가) 1건당 배민에 내는 수수료·비용 — 수수료·결제수수료·배달비 등 공제 합계 ÷ 주문 수 */
+export function takeShare(r: ChannelResult): {
+  per100: Q;
+  perOrder: Q | null;
+  withAd: Q | null;
+  /** 주문 1건 평균 객단가(할인 뺀 매출 ÷ 주문 수) */
+  avgTicket: Q | null;
+  /** 광고비·구독료까지 넣은 주문 1건당 비용 */
+  perOrderWithAd: Q | null;
+} | null {
   if (r.R.cmp(0) <= 0) return null;
   const per100 = r.deductionTotal.mul(100).div(r.R);
   const perOrder = r.N > 0 ? r.deductionTotal.div(r.N) : null;
+  const avgTicket = r.N > 0 ? r.R.div(r.N) : null;
   // 광고비·구독료 같은 배민 전용 기간 비용까지 넣은 값 (입력돼 있을 때만)
   const withAd = r.directFixed === null ? null : r.deductionTotal.add(r.directFixed).mul(100).div(r.R);
-  return { per100, perOrder, withAd };
+  const perOrderWithAd = r.directFixed === null || r.N <= 0 ? null : r.deductionTotal.add(r.directFixed).div(r.N);
+  return { per100, perOrder, withAd, avgTicket, perOrderWithAd };
 }
 
 export interface WeekWindow {

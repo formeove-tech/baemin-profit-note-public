@@ -190,7 +190,8 @@ function storeCSettlements(days: CDay[], today: string) {
     out.push({
       giveId: 700_000 + n,
       depositDueDate,
-      status: depositDueDate >= addDays(today, -1) ? "입금요청" : "입금완료",
+      // 입금 예정일이 최근 3일 안이면 아직 입금 전(입금요청). 입금일이 없는 요일(월·화)에도 항상 한 건은 보이도록 3일로 잡았다
+      status: depositDueDate >= addDays(today, -3) ? "입금요청" : "입금완료",
       settlePeriod: { start: part[0].date, end: part[part.length - 1].date },
       depositAmount: revenue - adCost + adjustment,
       adCost,

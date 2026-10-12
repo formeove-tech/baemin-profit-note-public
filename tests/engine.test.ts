@@ -424,6 +424,17 @@ describe("예시 가게 C — 처음부터 만든 가상 자료 (v8)", () => {
   });
 });
 
+describe("데모 정산: 어느 날짜에 열어도 입금 전 줄이 보인다", () => {
+  it("14일 연속 날짜 모두, 선택 기간(어제까지) 안에 입금요청 정산이 있다", () => {
+    for (let i = 0; i < 14; i++) {
+      const today = addDaysFn("2026-10-01", i);
+      const c = demoBusinesses(today)[2];
+      const yesterday = addDaysFn(today, -1);
+      expect(c.settlements!.some((x) => x.status === "입금요청" && x.depositDueDate <= yesterday), today).toBe(true);
+    }
+  });
+});
+
 describe("v9: 요일별 평균과 자료 검산", () => {
   const row = (date: string, orders: number, gross: number, discount = 0) => ({ date, orders, gross, discount, deductions: { brokerage: 1000 } });
   const range = { start: "2026-09-07", end: "2026-09-20" }; // 월~일 두 주
