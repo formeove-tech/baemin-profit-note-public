@@ -1,0 +1,238 @@
+@import "tailwindcss";
+
+/* v6: 40~60대 사장님이 읽기 편하게 작은 글씨를 한 단계 키운다 (text-xs 12 → 14px, text-sm 14 → 15px) */
+@theme {
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.5;
+}
+
+:root {
+  --bg: #f5f4f0;
+  --card: #ffffff;
+  --ink: #1d1c1a;
+  --muted: #6a665e;
+  --line: #e4e0d6;
+  --soft: #f0eee8;
+  --accent: #127c73;
+  --accent-soft: #e0f1ee;
+  --gain: #177245;
+  --loss: #b3261e;
+  --warn-bg: #fff4d6;
+  --warn-ink: #7a5300;
+  --bar: #8fb9b3;
+  --bar-cost: #e2b4a8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151514;
+    --card: #1f1f1d;
+    --ink: #eeece6;
+    --muted: #a19d94;
+    --line: #34332f;
+    --soft: #292826;
+    --accent: #4fc2b6;
+    --accent-soft: #173a36;
+    --gain: #5fcf8f;
+    --loss: #ff8a80;
+    --warn-bg: #3a2f12;
+    --warn-ink: #f3cf73;
+    --bar: #3f7a73;
+    --bar-cost: #8a4f43;
+  }
+}
+
+html {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+body {
+  background: var(--bg);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--soft);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.chip-warn {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+
+.chip-accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 11px;
+  background: var(--soft);
+}
+
+.seg button {
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.seg button[aria-pressed="true"] {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 10px;
+  padding: 7px 13px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+}
+
+.btn:hover {
+  border-color: var(--accent);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 9px;
+  padding: 7px 10px;
+  font-size: 15px;
+}
+
+.input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.gain {
+  color: var(--gain);
+}
+
+.loss {
+  color: var(--loss);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.table th,
+.table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+}
+
+.table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+h2.section {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* 인쇄·PDF 저장할 때 (버튼·입력칸은 빼고 숫자만 깔끔하게) */
+@media print {
+  .print-hide,
+  .seg,
+  .btn,
+  details,
+  input,
+  select {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .card {
+    break-inside: avoid;
+    border: 1px solid #ccc;
+    box-shadow: none;
+  }
+
+  .chip {
+    border: 1px solid #ccc;
+  }
+}
+
+/* v8: 폰·패드(터치 화면)에서는 작은 글자 버튼·물음표·체크박스를 손가락 크기로 키운다.
+   (젬마쌤 10/14 공유회는 패드로 서로 써 보는 자리) */
+@media (pointer: coarse), (max-width: 640px) {
+  button[aria-label="설명 보기"] {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+  .tap-target {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    min-width: 44px;
+  }
+  input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+  }
+}

@@ -1,0 +1,54 @@
+// v9: 사장님이 한눈에 읽는 한 줄짜리 숫자들. 계산은 엔진 결과를 그대로 쓰고 새 가정을 넣지 않는다.
+import { Q } from "./engine/rational";
+import { addDays } from "./engine/period";
+import { type ChannelResult, computeChannel, headline, type Scope } from "./engine/profit";
+import { aggregate, type CostSettings, type Store } from "./dataset";
+
+/** "음식값 100원 중 배민이 가져가는 돈" — 수수료·결제수수료·배달비 등 공제 합계 ÷ 할인 뺀 매출 */
+export function takeShare(r: ChannelResult): { per100: Q; perOrder: Q | null; withAd: Q | null } | null {
+  if (r.R.cmp(0) <= 0) return null;
+  const per100 = r.deductionTotal.mul(100).div(r.R);
+  const perOrder = r.N > 0 ? r.deductionTotal.div(r.N) : null;
+  // 광고비·구독료 같은 배민 전용 기간 비용까지 넣은 값 (입력돼 있을 때만)
+  const withAd = r.directFixed === null ? null : r.deductionTotal.add(r.directFixed).mul(100).div(r.R);
+  return { per100, perOrder, withAd };
+}
+
+export interface WeekWindow {
+  start: string;
+  end: string;
+  days: number;
+  value: Q | null;
+}
+
+/**
+ * 자료가 있는 마지막 날을 끝으로, 최근 7일과 그 전 7일의 '남는 돈'을 같은 설정으로 계산한다.
+ * 어느 쪽이든 자료가 있는 날이 5일 미만이면 견주지 않는다(null).
+ */
+export function weeklyCompare(store: Store, settings: CostSettings, scope: Scope): { cur: WeekWindow; prev: WeekWindow; diff: Q } | null {
+  if (store.rows.length === 0) return null;
+  const last = store.rows.reduce((a, r) => (r.date > a ? r.date : a), "");
+  const win = (end: string): WeekWindow => {
+    const range = { start: addDays(end, -6), end };
+    const agg = aggregate(store, settings, range);
+    const value = headline(computeChannel(agg.input), scope).period;
+    return { start: range.start, end, days: agg.rowCount, value };
+  };
+  const cur = win(last);
+  const prev = win(addDays(last, -7));
+  if (cur.days < 5 || prev.days < 5 || cur.value === null || prev.value === null) return null;
+  return { cur, prev, diff: cur.value.sub(prev.value) };
+}
+
+/** 사장님이 외우고 있는 숫자 3개로 하는 빠른 계산. 입력이 이상하면 null. */
+export function quickCalc(input: { sales: number; orders: number; takenByBaemin: number }) {
+  const { sales, orders, takenByBaemin } = input;
+  if (![sales, orders, takenByBaemin].every((x) => Number.isFinite(x)) || sales <= 0 || orders <= 0 || takenByBaemin < 0 || takenByBaemin > sales * 2) return null;
+  return {
+    avgOrder: Q.of(Math.round(sales)).div(orders),
+    per100: Q.of(Math.round(takenByBaemin)).mul(100).div(Math.round(sales)),
+    takenPerOrder: Q.of(Math.round(takenByBaemin)).div(orders),
+    /** 재료비·포장비·인건비를 빼기 전 */
+    leftBeforeCosts: Q.of(Math.round(sales) - Math.round(takenByBaemin)),
+  };
+}
