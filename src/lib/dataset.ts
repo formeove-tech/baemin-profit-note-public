@@ -144,7 +144,7 @@ export interface WeekdayStat {
   avgOrders: number;
   /** 하루 평균, 할인 뺀 매출 */
   avgNet: number;
-  /** 하루 평균, 배민 수수료·배달비 등을 낸 뒤 금액 (재료비·포장비·광고비 빼기 전) */
+  /** 하루 평균, 중개이용료·결제수수료·배달비 등을 낸 뒤 금액 (재료비·포장비·광고비 빼기 전) */
   avgAfterDeductions: number;
 }
 

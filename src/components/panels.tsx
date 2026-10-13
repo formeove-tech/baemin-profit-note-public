@@ -28,7 +28,7 @@ const tone = (x: Q | null) => (x === null ? "" : x.cmp(0) < 0 ? "loss" : "gain")
 
 function missingReason(r: ChannelResult, scope: Scope): string | null {
   if (r.flags.cogsMissing) return "재료원가율을 넣으면 계산돼요.";
-  if (r.flags.directMissing) return "광고비 같은 배민 비용을 넣거나 '없음'을 눌러 주세요.";
+  if (r.flags.directMissing) return "광고비 같은 플랫폼 비용을 넣거나 '없음'을 눌러 주세요.";
   if (scope === "allocated" && r.flags.commonMissing) return "인건비·월세 중 배민 주문분을 넣으면 계산돼요.";
   return null;
 }
@@ -130,23 +130,13 @@ export function StatRow({ result: r, be, scope }: { result: ChannelResult; be: B
     { label: "주문 금액 합계", value: won(r.G), sub: `할인 뺀 매출 ${won(r.R)}` },
     { label: "주문 1건 평균", value: won(perOrder(r.R, r.N)), sub: `할인 전 ${won(perOrder(r.G, r.N))}` },
     {
-      label: "배민에 낸 비용",
-      value: won(r.deductionTotal),
-      // v4: '광고비는 따로'를 놓치면 이게 배민 지출 전부로 보여서, 광고비를 더한 합계를 같이 적는다
-      sub:
-        `할인 뺀 매출의 ${pct(r.R.isZero() ? null : r.deductionTotal.div(r.R))}` +
-        (r.directFixed !== null && !r.directFixed.isZero()
-          ? ` · 광고비 ${won(r.directFixed)} 더하면 ${won(r.deductionTotal.add(r.directFixed))}`
-          : " · 광고비는 따로"),
-    },
-    {
       label: scope === "direct" ? "광고비 뽑는 데 필요한 주문" : "본전이 되는 주문 수",
       value: be.status === "ok" ? count(be.orders) : be.status === "unrecoverable" ? "회수 불가" : "입력 필요",
       sub: be.status === "ok" && be.dailyOrders !== null ? `하루 ${count(be.dailyOrders)}` : undefined,
     },
   ];
   return (
-    <section className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-5">
+    <section className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
       {items.map((it) => (
         <div key={it.label} className="card p-3">
           <div className="text-xs font-semibold muted">{it.label}</div>
@@ -177,7 +167,7 @@ export function TopChecks({ result: r, coverage, scope, commonZero = false, demo
     const amt = r.deductionsByKind[top];
     if (amt.isPositive())
       checks.push(
-        `배민에 내는 비용 중 ${DEDUCTION_LABEL[top]}가 가장 커요: 주문 1건당 ${won(perOrder(amt, r.N))}, 할인 뺀 매출의 ${pct(r.R.isZero() ? null : amt.div(r.R))}.` +
+        `정산 항목 중 ${DEDUCTION_LABEL[top]}가 가장 커요: 주문 1건당 ${won(perOrder(amt, r.N))}, 할인 뺀 매출의 ${pct(r.R.isZero() ? null : amt.div(r.R))}.` +
           (top === "delivery" ? " 배달비는 배민 배달 방식에 따라 정해져요 — 사장님이 줄일 수 있는 건 할인·포장비·재료비예요." : ""),
       );
   }
@@ -197,10 +187,10 @@ export function Waterfall({ result: r, cogsNote, commonNote }: { result: Channel
   const n = r.N;
   type Row = { label: string; value: Q | null; kind: "base" | "cost" | "sum"; note?: string; help?: string };
   const DEDUCTION_HELP: Record<DeductionKind, string> = {
-    brokerage: "주문마다 배민에 내는 수수료예요 (배민배달·가게배달·포장 요율에 따라 달라요).",
-    payment: "카드결제 등 결제·정산에 드는 수수료예요.",
+    brokerage: "주문을 연결해 주는 대가로 주문마다 내는 플랫폼 중개이용료예요 (배민배달·가게배달·포장 요율에 따라 달라요).",
+    payment: "카드결제 등 결제·정산에 드는 결제수수료예요.",
     delivery: "배민이 배달해 주고 사장님께 받는 배달비예요.",
-    other: "배민 수수료·배달비에 붙는 부가세예요. 부가세 신고 때 돌려받을 수 있어서, 이 화면은 '세금 떼기 전' 기준으로 넣었어요.",
+    other: "중개이용료·결제수수료·배달비에 붙는 부가세예요. 부가세 신고 때 돌려받을 수 있어서, 이 화면은 '세금 떼기 전' 기준으로 넣었어요.",
     unclassified: "배민 정산에는 있는데 이 프로그램이 아직 뜻을 모르는 항목이에요. 정산명세서에서 확인해 주세요.",
   };
   const rows: Row[] = [
@@ -232,7 +222,7 @@ export function Waterfall({ result: r, cogsNote, commonNote }: { result: Channel
       label: "수수료·재료비 뺀 돈",
       value: perOrder(r.cm, n),
       kind: "sum",
-      help: "주문 한 건을 팔면 들어오는 돈에서, 그 주문 때문에 나가는 돈(배민 수수료·배달비·재료·포장)을 뺀 금액이에요. 여기서 광고비와 인건비·월세를 더 빼야 진짜 남는 돈이에요.",
+      help: "주문 한 건을 팔면 들어오는 돈에서, 그 주문 때문에 나가는 돈(중개이용료·결제수수료·배달비·재료·포장)을 뺀 금액이에요. 여기서 광고비와 인건비·월세를 더 빼야 진짜 남는 돈이에요.",
     },
     {
       label: "광고비 (1건으로 나눈 값)",
@@ -808,8 +798,8 @@ export function PriceSimPanel({ result: r, fixed, scope, menus = [] }: { result:
           />
         </label>
         <div className="w-40">
-          <NumField label="올린 금액에서 배민에 내는 수수료 몫" value={fee} suffix="%" onChange={setFee} />
-          <span className="text-xs muted">중개 수수료 + 결제 수수료를 어림한 값이에요 (보통 10% 안팎)</span>
+          <NumField label="올린 금액에서 중개이용료·결제수수료로 빠지는 몫" value={fee} suffix="%" onChange={setFee} />
+          <span className="text-xs muted">플랫폼 중개이용료 + 결제수수료를 어림한 값이에요 (보통 10% 안팎)</span>
         </div>
       </div>
       {sim.status !== "ok" ? (
@@ -974,7 +964,7 @@ export function WeekdayPanel({ store, range }: { store: Store; range: DateRange 
   return (
     <section className="card p-4">
       <h2 className="section">
-        요일별 하루 평균 <Help>배민 수수료·배달비 등을 낸 뒤 금액이에요. 재료비·포장비·광고비는 아직 안 뺀 돈이라 '남는 돈'과는 달라요. 요일끼리 견주는 용도예요.</Help>
+        요일별 하루 평균 <Help>중개이용료·결제수수료·배달비 등을 낸 뒤 금액이에요. 재료비·포장비·광고비는 아직 안 뺀 돈이라 '남는 돈'과는 달라요. 요일끼리 견주는 용도예요.</Help>
       </h2>
       <div className="mt-3 flex flex-col gap-2">
         {stats.map((s) => (
@@ -1072,7 +1062,7 @@ export function RecommendationPanel({
   if (!priceLocked && topSim && topSim.status === "ok") {
     items.push({
       title: `'${top.name}'만 500원 올리면`,
-      detail: `이 기간에 ${top.qty.toLocaleString("ko-KR")}개 팔린 메뉴예요. 주문이 그대로면 ${won(topSim.scenarios[0].diff, { signed: true })} (${top.qty.toLocaleString("ko-KR")}개 × 450원). 이 메뉴 주문이 줄면 그만큼 효과가 작아져요. 올린 금액의 10%는 배민 수수료로 빠진다고 봤어요.`,
+      detail: `이 기간에 ${top.qty.toLocaleString("ko-KR")}개 팔린 메뉴예요. 주문이 그대로면 ${won(topSim.scenarios[0].diff, { signed: true })} (${top.qty.toLocaleString("ko-KR")}개 × 450원). 이 메뉴 주문이 줄면 그만큼 효과가 작아져요. 올린 금액의 10%는 중개이용료·결제수수료로 빠진다고 봤어요.`,
       impact: topSim.scenarios[0].diff,
     });
   }
@@ -1082,7 +1072,7 @@ export function RecommendationPanel({
     const risky = sim.scenarios[1].diff.cmp(0) < 0;
     items.push({
       title: risky ? "주문마다 500원씩 더 받으면 (신중)" : "주문마다 500원씩 더 받으면",
-      detail: `모든 주문의 결제 금액이 500원씩 오른다고 볼 때, 주문이 그대로면 ${won(sim.scenarios[0].diff, { signed: true })}, 주문이 5% 줄면 ${won(sim.scenarios[1].diff, { signed: true })}.${risky ? " 주문이 조금만 줄어도 손해라 신중하게 보세요." : ""} 올린 금액의 10%는 배민 수수료로 빠진다고 보고 계산했어요. 메뉴 하나만 올릴 때 효과는 이보다 작아요.`,
+      detail: `모든 주문의 결제 금액이 500원씩 오른다고 볼 때, 주문이 그대로면 ${won(sim.scenarios[0].diff, { signed: true })}, 주문이 5% 줄면 ${won(sim.scenarios[1].diff, { signed: true })}.${risky ? " 주문이 조금만 줄어도 손해라 신중하게 보세요." : ""} 올린 금액의 10%는 중개이용료·결제수수료로 빠진다고 보고 계산했어요. 메뉴 하나만 올릴 때 효과는 이보다 작아요.`,
       impact: risky ? sim.scenarios[1].diff : sim.scenarios[0].diff,
     });
   }

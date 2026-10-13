@@ -231,7 +231,7 @@ export function Dashboard() {
           </div>
           <p className="mt-1">로그인 없이 눌러 보세요. 숫자는 모두 처음부터 만든 가상 숫자이고, 눌러도 어디에도 저장되지 않아요.</p>
           <ol className="mt-2 list-decimal pl-5 leading-relaxed">
-            <li><strong>여기부터 눌러 보세요</strong> — 맨 위 '평균 주문 ○○원 중, 1건당 배민에 내는 수수료·비용' 한 줄을 읽어 보세요.</li>
+            <li><strong>여기부터 눌러 보세요</strong> — 맨 위 '평균 주문 ○○원 중, 1건당 항목별 금액' 칸의 중개이용료·결제수수료·배달비을 읽어 보세요.</li>
             <li>위쪽 <strong>자세히 보기</strong>를 누르고 '메뉴별 수익성'에서 남는 비율이 낮은 <strong>모둠 수육 (중)</strong>을 찾아 보세요.</li>
             <li>'가격 실험'에서 그 메뉴를 골라 값을 올려 보고, 아래 '정산 대조'의 빨간 줄(입금 전)을 확인해 보세요.</li>
           </ol>

@@ -4,8 +4,8 @@ import { Q, safeDiv } from "./rational";
 export type DeductionKind = "brokerage" | "payment" | "delivery" | "other" | "unclassified";
 
 export const DEDUCTION_LABEL: Record<DeductionKind, string> = {
-  brokerage: "배민 중개 수수료",
-  payment: "결제 수수료",
+  brokerage: "플랫폼 중개이용료",
+  payment: "결제수수료",
   delivery: "배달비",
   other: "부가세 등 기타",
   unclassified: "확인이 필요한 정산 항목",

@@ -11,9 +11,9 @@ export function Welcome({ onShowExample }: { onShowExample: () => void }) {
     <section className="card mb-4 p-5 md:p-6">
       <h1 className="text-xl font-extrabold leading-snug md:text-2xl">배민 주문 1건마다, 실제로 얼마가 남는지 알려 드려요</h1>
       <p className="mt-2 text-sm leading-relaxed">
-        배민에 내는 <strong>수수료·배달비·광고비</strong>를 주문 1건 기준으로 쪼개서 보여 줘요. 매출 장부로는 잘 안 보이는 부분이에요.
+        주문마다 드는 <strong>중개이용료·결제수수료·배달비·광고비</strong>를 주문 1건 기준으로 쪼개서 보여 줘요. 매출 장부로는 잘 안 보이는 부분이에요.
         <br />
-        예) &ldquo;배민에 내는 비용 중 배달비가 가장 커요: 주문 1건당 2,450원&rdquo;
+        예) &ldquo;정산 항목 중 배달비가 가장 커요: 주문 1건당 2,450원&rdquo;
       </p>
 
       <ol className="mt-4 grid gap-2 text-sm md:grid-cols-3">

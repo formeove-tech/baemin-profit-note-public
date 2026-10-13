@@ -1,10 +1,10 @@
 // v9: 사장님이 한눈에 읽는 한 줄짜리 숫자들. 계산은 엔진 결과를 그대로 쓰고 새 가정을 넣지 않는다.
 import { Q } from "./engine/rational";
 import { addDays } from "./engine/period";
-import { type ChannelResult, computeChannel, headline, type Scope } from "./engine/profit";
+import { type ChannelResult, computeChannel, DEDUCTION_LABEL, type DeductionKind, headline, type Scope } from "./engine/profit";
 import { aggregate, type CostSettings, type Store } from "./dataset";
 
-/** 평균 주문(객단가) 1건당 배민에 내는 수수료·비용 — 수수료·결제수수료·배달비 등 공제 합계 ÷ 주문 수 */
+/** 평균 주문(객단가) 1건당 항목별 금액(parts)과 공제 합계 ÷ 주문 수 */
 export function takeShare(r: ChannelResult): {
   per100: Q;
   perOrder: Q | null;
@@ -13,6 +13,8 @@ export function takeShare(r: ChannelResult): {
   avgTicket: Q | null;
   /** 광고비·구독료까지 넣은 주문 1건당 비용 */
   perOrderWithAd: Q | null;
+  /** 항목별(중개이용료·결제수수료·배달비 등) 1건당 금액. 0원 항목은 뺀다 */
+  parts: { kind: DeductionKind; label: string; perOrder: Q | null; per100: Q }[];
 } | null {
   if (r.R.cmp(0) <= 0) return null;
   const per100 = r.deductionTotal.mul(100).div(r.R);
@@ -21,7 +23,15 @@ export function takeShare(r: ChannelResult): {
   // 광고비·구독료 같은 배민 전용 기간 비용까지 넣은 값 (입력돼 있을 때만)
   const withAd = r.directFixed === null ? null : r.deductionTotal.add(r.directFixed).mul(100).div(r.R);
   const perOrderWithAd = r.directFixed === null || r.N <= 0 ? null : r.deductionTotal.add(r.directFixed).div(r.N);
-  return { per100, perOrder, withAd, avgTicket, perOrderWithAd };
+  const parts = (Object.keys(r.deductionsByKind) as DeductionKind[])
+    .filter((k) => !r.deductionsByKind[k].isZero())
+    .map((k) => ({
+      kind: k,
+      label: DEDUCTION_LABEL[k],
+      perOrder: r.N > 0 ? r.deductionsByKind[k].div(r.N) : null,
+      per100: r.deductionsByKind[k].mul(100).div(r.R),
+    }));
+  return { per100, perOrder, withAd, avgTicket, perOrderWithAd, parts };
 }
 
 export interface WeekWindow {
