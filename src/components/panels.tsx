@@ -429,13 +429,14 @@ function CommonCostHelper({
   ]);
   const [mode, setMode] = useState<"ratio" | "sales">("ratio");
   const [ratio, setRatio] = useState<number | null>(50);
-  const [totalSales, setTotalSales] = useState<number | null>(null);
+  // 홀·포장·다른 앱 매출(배민 제외). 배민 매출은 앱이 알고 있으니 더해서 비율을 계산한다
+  const [otherSales, setOtherSales] = useState<number | null>(null);
   const [fromMonth, setFromMonth] = useState(range.start.slice(0, 7));
   const [toMonth, setToMonth] = useState(range.end.slice(0, 7));
 
   const monthlyTotal = Q.sum(items.map((i) => Number(i.amount.replace(/[^\d]/g, "")) || 0));
-  // 매출 비중으로 나눌 때는 같은 기간의 '가게 전체 매출'이 있어야 한다 (배민 매출만으로 추정하지 않음)
-  const salesRatio = mode === "sales" && totalSales ? baeminSales.div(totalSales) : null;
+  // 매출 비중으로 나눌 때는 같은 기간의 홀·다른 앱 매출이 있어야 한다 (배민 매출만으로 추정하지 않음). 없으면 0원을 넣는다
+  const salesRatio = mode === "sales" && otherSales !== null && !baeminSales.add(otherSales).isZero() ? baeminSales.div(baeminSales.add(otherSales)) : null;
   const applied = mode === "ratio" ? (ratio === null ? null : Q.pct(ratio)) : salesRatio;
   const share = applied === null ? null : monthlyTotal.mul(applied);
   const months = fromMonth <= toMonth ? monthsBetween(fromMonth, toMonth) : [];
@@ -500,16 +501,16 @@ function CommonCostHelper({
           <div className="flex flex-col gap-1">
             <div className="w-56">
               <NumField
-                label="같은 기간 가게 전체 매출"
-                value={totalSales}
+                label="홀·포장·다른 앱 매출 (배민 빼고, 같은 기간)"
+                value={otherSales}
                 suffix="원"
-                placeholder="홀·다른 앱 포함"
-                onChange={(v) => setTotalSales(v === null ? null : Math.round(v))}
+                placeholder="예: 홀 매출 합계 (없으면 0)"
+                onChange={(v) => setOtherSales(v === null ? null : Math.round(v))}
               />
             </div>
             <p className="text-xs muted">
-              선택 기간 배민 매출 {won(baeminSales)} ÷ 전체 매출 = 배민 주문 비율{" "}
-              {salesRatio === null ? "전체 매출을 넣어 주세요" : pct(salesRatio)}
+              선택 기간 배민 매출 {won(baeminSales)} ÷ (배민 매출 + 홀·다른 앱 매출 {won(otherSales ?? 0)}) = 배민 주문 비율{" "}
+              {salesRatio === null ? "홀·다른 앱 매출을 넣어 주세요 (없으면 0)" : pct(salesRatio)}
             </p>
           </div>
         )}
