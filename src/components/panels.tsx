@@ -29,7 +29,7 @@ const tone = (x: Q | null) => (x === null ? "" : x.cmp(0) < 0 ? "loss" : "gain")
 function missingReason(r: ChannelResult, scope: Scope): string | null {
   if (r.flags.cogsMissing) return "재료원가율을 넣으면 계산돼요.";
   if (r.flags.directMissing) return "광고비 같은 배민 비용을 넣거나 '없음'을 눌러 주세요.";
-  if (scope === "allocated" && r.flags.commonMissing) return "인건비·월세 중 배민 몫을 넣으면 계산돼요.";
+  if (scope === "allocated" && r.flags.commonMissing) return "인건비·월세 중 배민 주문분을 넣으면 계산돼요.";
   return null;
 }
 
@@ -160,7 +160,7 @@ export function StatRow({ result: r, be, scope }: { result: ChannelResult; be: B
 
 export function TopChecks({ result: r, coverage, scope, commonZero = false, demo = false }: { result: ChannelResult; coverage: Coverage; scope: Scope; commonZero?: boolean; demo?: boolean }) {
   const checks: string[] = [];
-  if (scope === "allocated" && commonZero) checks.push("인건비·월세를 0원으로 두셨어요. 가게에 인건비·월세가 있다면 '자세히 보기 → 원가와 비용'에서 배민 몫을 넣어야 진짜 남는 돈이 나와요.");
+  if (scope === "allocated" && commonZero) checks.push("인건비·월세를 0원으로 두셨어요. 가게에 인건비·월세가 있다면 '자세히 보기 → 원가와 비용'에서 배민 주문분을 넣어야 진짜 남는 돈이 나와요.");
   if (r.flags.cogsMissing) checks.push("재료비를 넣으면 남는 돈을 계산할 수 있어요.");
   if (!coverage.complete)
     checks.push(
@@ -170,7 +170,7 @@ export function TopChecks({ result: r, coverage, scope, commonZero = false, demo
     );
   if (r.flags.hasUnclassified) checks.push(`확인이 필요한 정산 항목 ${won(r.deductionsByKind.unclassified)}이 있어요. 배민 정산명세서에서 확인해 주세요.`);
   if (r.flags.packagingMissing) checks.push("포장비가 빠져 있어요. 주문당 포장비를 넣으면 더 정확해져요.");
-  if (scope === "allocated" && r.flags.commonMissing) checks.push("인건비·월세 중 배민 몫을 넣어야 진짜 남는 돈이 나와요.");
+  if (scope === "allocated" && r.flags.commonMissing) checks.push("인건비·월세 중 배민 주문분을 넣어야 진짜 남는 돈이 나와요.");
   if (!r.R.isZero()) {
     const kinds = (Object.keys(r.deductionsByKind) as DeductionKind[]).filter((k) => k !== "unclassified");
     const top = kinds.sort((a, b) => r.deductionsByKind[b].cmp(r.deductionsByKind[a]))[0];
@@ -410,7 +410,7 @@ function CostList({
 
 /**
  * 공통비 배분 도우미 (CALC 05).
- * 가게 전체 비용에서 배민 몫만 떼어 낸다. 배민 매출만으로 비율을 추정하지 않고,
+ * 가게 전체 비용에서 배민 주문분만 떼어 낸다. 배민 매출만으로 비율을 추정하지 않고,
  * 사장님이 비율을 직접 정하거나 전체 매출을 넣어 계산하게 한다.
  */
 function CommonCostHelper({
@@ -443,9 +443,9 @@ function CommonCostHelper({
 
   return (
     <details className="rounded-lg border p-3 text-sm" style={{ borderColor: "var(--line)" }}>
-      <summary className="cursor-pointer font-semibold">＋ 인건비·월세에서 배민 몫 계산해서 넣기</summary>
+      <summary className="cursor-pointer font-semibold">＋ 인건비·월세 넣기 (배민 주문이 쓴 만큼만 계산)</summary>
       <p className="mt-2 text-xs muted">
-        가게 전체에 드는 한 달 비용을 적고, 그중 배민이 차지하는 몫만 떼어 넣어요. 홀·다른 앱과 함께 쓰는 비용을 배민에 전부 넣지 않도록 하는 칸이에요.
+        가게 전체로 한 달에 드는 비용을 적어 주세요. 홀이나 다른 앱(쿠팡이츠·요기요)도 같이 쓰는 비용이면, 그중 배민 주문이 쓴 비율만큼만 넣어요. 배민 배달만 하는 가게라면 100%를 누르세요.
       </p>
       <div className="mt-3 flex flex-col gap-2">
         {items.map((it, i) => (
@@ -480,8 +480,21 @@ function CommonCostHelper({
           </button>
         </div>
         {mode === "ratio" ? (
-          <div className="w-44">
-            <NumField label="배민 몫" value={ratio} suffix="%" onChange={setRatio} />
+          <div className="flex flex-col gap-2">
+            <div className="w-44">
+              <NumField label="배민 주문이 쓴 비율" value={ratio} suffix="%" onChange={setRatio} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button className="btn tap-target" onClick={() => setRatio(100)}>
+                배민만 해요 (100%)
+              </button>
+              <button className="btn tap-target" onClick={() => setRatio(50)}>
+                절반 (50%)
+              </button>
+            </div>
+            {(ratio === null || ratio === 0) && monthlyTotal.cmp(0) > 0 && (
+              <p className="text-xs loss">비율이 0%라서 0원이 들어가요. 배민 배달만 하는 가게면 위의 '배민만 해요 (100%)' 버튼을 눌러 주세요.</p>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-1">
@@ -495,7 +508,7 @@ function CommonCostHelper({
               />
             </div>
             <p className="text-xs muted">
-              선택 기간 배민 매출 {won(baeminSales)} ÷ 전체 매출 = 배민 몫{" "}
+              선택 기간 배민 매출 {won(baeminSales)} ÷ 전체 매출 = 배민 주문 비율{" "}
               {salesRatio === null ? "전체 매출을 넣어 주세요" : pct(salesRatio)}
             </p>
           </div>
@@ -509,7 +522,7 @@ function CommonCostHelper({
       </div>
 
       <p className="mt-3 text-sm">
-        가게 전체 한 달 {won(monthlyTotal)} × 배민 몫 {applied === null ? "—" : pct(applied)} ={" "}
+        가게 전체 한 달 {won(monthlyTotal)} × 배민 주문 비율 {applied === null ? "—" : pct(applied)} ={" "}
         <strong>{share === null ? "—" : won(share)}</strong> <span className="muted">/ 월 · {months.length}개월 적용</span>
       </p>
       <button
@@ -522,14 +535,14 @@ function CommonCostHelper({
           onAdd(
             months.map((m) => ({
               id: `${id}-${m}`,
-              label: `인건비·월세 배민 몫 (${Number(m.slice(5))}월, 전체 ${won(monthlyTotal)}의 ${pct(applied!)})`,
+              label: `인건비·월세 배민 주문분 (${Number(m.slice(5))}월, 전체 ${won(monthlyTotal)}의 ${pct(applied!)})`,
               amount: Number(share.round()),
               ...monthRange(m),
             })),
           );
         }}
       >
-        배민 몫으로 넣기
+        이 금액으로 넣기
       </button>
     </details>
   );
@@ -569,7 +582,7 @@ function AddCostForm({ range, onAdd }: { range: DateRange; onAdd: (kind: "direct
       <summary className="cursor-pointer font-semibold">+ 기간 비용 추가</summary>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         <select className="input" value={kind} onChange={(e) => setKind(e.target.value as "direct" | "common")}>
-          <option value="common">인건비·월세 중 배민 몫</option>
+          <option value="common">인건비·월세 중 배민 주문분</option>
           <option value="direct">배민 전용 비용 (정액 광고 등)</option>
         </select>
         <input className="input" placeholder="항목 이름" value={label} onChange={(e) => setLabel(e.target.value)} />
@@ -717,11 +730,11 @@ export function CostPanel({
         onNone={(v) => onChange({ noDirectCosts: v })}
       />
       <CostList
-        title="인건비·월세 중 배민 몫"
+        title="인건비·월세 중 배민 주문분"
         parts={agg.commonParts}
         costs={s.commonCosts}
         onRemove={(id) => onChange({ commonCosts: s.commonCosts.filter((c) => c.id !== id) })}
-        noneLabel="인건비·월세 배민 몫이 정말 없어요 (0원)"
+        noneLabel="인건비·월세 배민 주문분이 정말 없어요 (0원)"
         none={s.noCommonCosts}
         onNone={(v) => onChange({ noCommonCosts: v })}
       />

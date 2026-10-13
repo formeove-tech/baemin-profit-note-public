@@ -206,7 +206,7 @@ export function Onboarding({
       body: (
         <div className="flex flex-col gap-2 text-sm">
           <p>
-            이걸 넣어야 <strong>진짜 남는 돈</strong>이 나와요. 가게 전체에 한 달 동안 나가는 돈을 적고, 그중 배민 몫이 몇 %인지 정해 주세요.
+            이걸 넣어야 <strong>진짜 남는 돈</strong>이 나와요. 가게 전체에 한 달 동안 나가는 돈을 적고, 그중 배민 주문분이 몇 %인지 정해 주세요.
           </p>
           <div className="grid gap-2 sm:grid-cols-3">
             {[
@@ -220,9 +220,9 @@ export function Onboarding({
               </label>
             ))}
           </div>
-          <div className="seg self-start" role="group" aria-label="배민 몫 정하는 방법">
+          <div className="seg self-start" role="group" aria-label="배민 주문분 정하는 방법">
             <button aria-pressed={shareMode === "pct"} onClick={() => setShareMode("pct")}>
-              배민 몫 %를 알아요
+              배민 주문 비율(%)을 알아요
             </button>
             <button aria-pressed={shareMode === "sales"} onClick={() => setShareMode("sales")}>
               몰라요 — 전체 매출로 계산
@@ -230,7 +230,7 @@ export function Onboarding({
           </div>
           {shareMode === "pct" ? (
             <label className="flex flex-wrap items-center gap-2">
-              <span>그중 배민 몫</span>
+              <span>그중 배민 주문이 쓴 비율</span>
               <input className="input w-20" inputMode="decimal" placeholder="예: 60" value={share} onChange={(e) => setShare(e.target.value.replace(/[^\d.]/g, ""))} />
               <span>%</span>
               <span className="text-xs muted">홀 없이 배민만 하시면 100. 모르겠으면 60쯤 넣고 나중에 고쳐도 돼요.</span>
@@ -242,13 +242,13 @@ export function Onboarding({
               </span>
               <input className="input w-36" inputMode="numeric" placeholder="예: 60000000" value={totalSales} onChange={(e) => setTotalSales(onlyDigits(e.target.value))} />
               <span className="text-xs muted">
-                배민 한 달 평균 {won(baeminMonthly)} ÷ 전체 매출 = {sharePct > 0 ? `배민 몫 ${sharePct}%` : "배민 몫 %"}
+                배민 한 달 평균 {won(baeminMonthly)} ÷ 전체 매출 = {sharePct > 0 ? `배민 주문분 ${sharePct}%` : "배민 주문분 %"}
               </span>
             </label>
           )}
           {monthlyCommon > 0 && sharePct > 0 && (
             <p className="text-xs">
-              한 달 {won(monthlyCommon)} 중 배민 몫 {pct(Q.pct(sharePct))} = <strong>{won(monthlyShare)}</strong>
+              한 달 {won(monthlyCommon)} 중 배민 주문분 {pct(Q.pct(sharePct))} = <strong>{won(monthlyShare)}</strong>
             </p>
           )}
           <div className="flex flex-wrap gap-2">
@@ -265,7 +265,7 @@ export function Onboarding({
                     ...s.commonCosts,
                     ...months.map((m) => ({
                       id: `${id}-${m}`,
-                      label: `인건비·월세 배민 몫 (${Number(m.slice(5))}월, 한 달 ${won(monthlyCommon)}의 ${sharePct}%)`,
+                      label: `인건비·월세 배민 주문분 (${Number(m.slice(5))}월, 한 달 ${won(monthlyCommon)}의 ${sharePct}%)`,
                       amount: Number(monthlyShare.round()),
                       ...monthRange(m),
                     })),

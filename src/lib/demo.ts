@@ -270,7 +270,7 @@ function demoCBusiness(today: string): Business {
   }));
   const range = { start: rows[0].date, end: rows[rows.length - 1].date };
   const totalGross = rows.reduce((a, r) => a + r.gross, 0);
-  const commonTotal = Math.round((totalGross * 0.22) / 10_000) * 10_000; // 예시용 인건비·월세 배민 몫(전체 기간)
+  const commonTotal = Math.round((totalGross * 0.22) / 10_000) * 10_000; // 예시용 인건비·월세 배민 주문분(전체 기간)
 
   return {
     id: "biz-c",
@@ -281,7 +281,7 @@ function demoCBusiness(today: string): Business {
       cogs: { ratePct: 32, base: "gross", includesPackaging: false },
       packagingPerOrder: 350,
       directCosts: storeCDirectCosts(days),
-      commonCosts: [{ id: "c-common", label: "인건비·월세 배민 몫 (예시)", amount: commonTotal, ...range }],
+      commonCosts: [{ id: "c-common", label: "인건비·월세 배민 주문분 (예시)", amount: commonTotal, ...range }],
       noDirectCosts: false,
       noCommonCosts: false,
       closedDays: 0,
